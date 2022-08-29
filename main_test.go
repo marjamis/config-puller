@@ -9,33 +9,56 @@ import (
 
 func TestAreEnvsAvailable(t *testing.T) {
 	os.Clearenv()
+	filename := "ADMIN"
 
-	os.Setenv("CONFIG_PULLER_ADMIN_SCHEME", "s3")
-	os.Setenv("CONFIG_PULLER_ADMIN_BUCKETNAME", "bucket")
-	assert.False(t, areEnvsAvailable("ADMIN"))
+	os.Setenv(envPrefix+filename+schemeSuffix, "s3")
+	assert.False(t, areAllEnvsAvailable(filename))
 
-	os.Setenv("CONFIG_PULLER_ADMIN_OBJECTKEY", "object/key")
-	os.Setenv("CONFIG_PULLER_ADMIN_SAVELOCATION", "/save/location")
-	os.Setenv("CONFIG_PULLER_ADMIN_PERMISSIONS", "0777")
-	assert.True(t, areEnvsAvailable("ADMIN"))
+	os.Setenv(envPrefix+filename+bucketNameSuffix, "bucket")
+	assert.False(t, areAllEnvsAvailable(filename))
+
+	os.Setenv(envPrefix+filename+objectKeySuffix, "object/key")
+	assert.False(t, areAllEnvsAvailable(filename))
+
+	os.Setenv(envPrefix+filename+saveLocationSuffix, "/save/location")
+	assert.False(t, areAllEnvsAvailable(filename))
+
+	os.Setenv(envPrefix+filename+permissionsSuffix, "0777")
+	assert.True(t, areAllEnvsAvailable(filename))
 }
 
 func TestGetConfigFromEnvs(t *testing.T) {
-	os.Clearenv()
+	t.Run("All envs available", func(t *testing.T) {
+		os.Clearenv()
+		filename := "ADMIN"
 
-	os.Setenv("CONFIG_PULLER_ADMIN_SCHEME", "s3")
-	os.Setenv("CONFIG_PULLER_ADMIN_BUCKETNAME", "bucket")
-	os.Setenv("CONFIG_PULLER_ADMIN_OBJECTKEY", "object/key")
-	os.Setenv("CONFIG_PULLER_ADMIN_SAVELOCATION", "/save/location")
-	os.Setenv("CONFIG_PULLER_ADMIN_PERMISSIONS", "0777")
+		os.Setenv(envPrefix+filename+schemeSuffix, "s3")
+		os.Setenv(envPrefix+filename+bucketNameSuffix, "bucket")
+		os.Setenv(envPrefix+filename+objectKeySuffix, "object/key")
+		os.Setenv(envPrefix+filename+saveLocationSuffix, "/save/location")
+		os.Setenv(envPrefix+filename+permissionsSuffix, "0777")
 
-	assert.Equal(t, ConfigDetails{
-		scheme:       "s3",
-		bucketName:   "bucket",
-		objectKey:    "object/key",
-		saveLocation: "/save/location",
-		permissions:  "0777",
-	}, getConfigsFromEnvs()[0])
+		assert.Equal(t, ConfigDetails{
+			scheme:       "s3",
+			bucketName:   "bucket",
+			objectKey:    "object/key",
+			saveLocation: "/save/location",
+			permissions:  "0777",
+		}, getConfigsFromEnvs()[0])
+	})
+
+	t.Run("Missing env", func(t *testing.T) {
+		os.Clearenv()
+		filename := "ADMIN"
+
+		os.Setenv(envPrefix+filename+schemeSuffix, "s3")
+		os.Setenv(envPrefix+filename+bucketNameSuffix, "bucket")
+		os.Setenv(envPrefix+filename+saveLocationSuffix, "/save/location")
+		os.Setenv(envPrefix+filename+permissionsSuffix, "0777")
+
+		var conf []ConfigDetails
+		assert.Equal(t, conf, getConfigsFromEnvs())
+	})
 }
 
 func TestFindAllFiles(t *testing.T) {
@@ -49,8 +72,9 @@ func TestFindAllFiles(t *testing.T) {
 		"123admin",
 	}
 	for _, file := range files {
-		os.Setenv("CONFIG_PULLER_"+file+"_SCHEME", "testValue")
+		os.Setenv(envPrefix+file+schemeSuffix, "testValue")
 	}
+
 	expected := []string{
 		"123ADMIN",
 		"123admin",

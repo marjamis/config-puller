@@ -55,7 +55,7 @@ func findAllConfigFiles() []string {
 	return files
 }
 
-func areEnvsAvailable(filename string) bool {
+func areAllEnvsAvailable(filename string) bool {
 	requiredConfigurations := []string{
 		schemeSuffix,
 		bucketNameSuffix,
@@ -74,7 +74,7 @@ func areEnvsAvailable(filename string) bool {
 
 func getConfigsFromEnvs() (configs []ConfigDetails) {
 	for _, filename := range findAllConfigFiles() {
-		if !areEnvsAvailable(filename) {
+		if !areAllEnvsAvailable(filename) {
 			fmt.Println("Skipping file: " + filename + " as there are missing envs.")
 			continue
 		}
