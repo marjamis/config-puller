@@ -1,63 +1,56 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAreEnvsAvailable(t *testing.T) {
 	os.Clearenv()
-	filename := "ADMIN"
+	godotenv.Load("./test/envfile.txt")
 
-	os.Setenv(envPrefix+filename+schemeSuffix, "s3")
-	assert.False(t, areAllEnvsAvailable(filename))
+	assert.False(t, areAllEnvsAvailable("MISSINGSCHEME"))
+	assert.False(t, areAllEnvsAvailable("MISSINGBUCKETNAME"))
+	assert.False(t, areAllEnvsAvailable("MISSINGOBJECTKEY"))
+	assert.False(t, areAllEnvsAvailable("MISSINGLOCATION"))
+	assert.False(t, areAllEnvsAvailable("MISSINGPERMISSIONS"))
 
-	os.Setenv(envPrefix+filename+bucketNameSuffix, "bucket")
-	assert.False(t, areAllEnvsAvailable(filename))
-
-	os.Setenv(envPrefix+filename+objectKeySuffix, "object/key")
-	assert.False(t, areAllEnvsAvailable(filename))
-
-	os.Setenv(envPrefix+filename+saveLocationSuffix, "/save/location")
-	assert.False(t, areAllEnvsAvailable(filename))
-
-	os.Setenv(envPrefix+filename+permissionsSuffix, "0777")
-	assert.True(t, areAllEnvsAvailable(filename))
+	assert.True(t, areAllEnvsAvailable("SUCCESS1"))
+	assert.True(t, areAllEnvsAvailable("SUCCESS2"))
 }
 
 func TestGetConfigFromEnvs(t *testing.T) {
-	t.Run("All envs available", func(t *testing.T) {
-		os.Clearenv()
-		filename := "ADMIN"
+	os.Clearenv()
+	godotenv.Load("./test/envfile.txt")
+	configs, failureCount := getConfigsFromEnvs()
 
-		os.Setenv(envPrefix+filename+schemeSuffix, "s3")
-		os.Setenv(envPrefix+filename+bucketNameSuffix, "bucket")
-		os.Setenv(envPrefix+filename+objectKeySuffix, "object/key")
-		os.Setenv(envPrefix+filename+saveLocationSuffix, "/save/location")
-		os.Setenv(envPrefix+filename+permissionsSuffix, "0777")
+	fmt.Printf("%+v", configs)
 
-		assert.Equal(t, ConfigDetails{
-			scheme:       "s3",
-			bucketName:   "bucket",
-			objectKey:    "object/key",
-			saveLocation: "/save/location",
-			permissions:  "0777",
-		}, getConfigsFromEnvs()[0])
+	t.Run("Success count and values", func(t *testing.T) {
+		assert.ElementsMatch(t, []ConfigDetails{
+			{
+				scheme:       "s3",
+				bucketName:   "my-bucket",
+				objectKey:    "objectkey",
+				saveLocation: "/save/location/with-filename.config",
+				permissions:  "0777",
+			},
+			{
+				scheme:       "s3",
+				bucketName:   "my-bucket2",
+				objectKey:    "object/key",
+				saveLocation: "/save/location/with-filename2.config",
+				permissions:  "0400",
+			},
+		}, configs)
 	})
 
-	t.Run("Missing env", func(t *testing.T) {
-		os.Clearenv()
-		filename := "ADMIN"
-
-		os.Setenv(envPrefix+filename+schemeSuffix, "s3")
-		os.Setenv(envPrefix+filename+bucketNameSuffix, "bucket")
-		os.Setenv(envPrefix+filename+saveLocationSuffix, "/save/location")
-		os.Setenv(envPrefix+filename+permissionsSuffix, "0777")
-
-		var conf []ConfigDetails
-		assert.Equal(t, conf, getConfigsFromEnvs())
+	t.Run("Failure count", func(t *testing.T) {
+		assert.Equal(t, 5, failureCount)
 	})
 }
 

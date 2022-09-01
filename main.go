@@ -29,16 +29,21 @@ type ConfigDetails struct {
 }
 
 func main() {
-	for _, config := range getConfigsFromEnvs() {
+	fmt.Println("Getting configuration files...")
+
+	configsToGet, failures := getConfigsFromEnvs()
+	for _, config := range configsToGet {
 		getFile(config)
 	}
+
+	fmt.Printf("There were %d configuration files pulled successfully and %d failures.\n", len(configsToGet), failures)
 }
 
 func findAllConfigFiles() []string {
 	// Use a map to filter out duplicates of filenames
 	filesnames := map[string]int{}
 	for _, env := range os.Environ() {
-		if strings.Contains(env, envPrefix) && strings.Contains(env, schemeSuffix) {
+		if strings.Contains(env, envPrefix) {
 			filename := strings.Split(env, "_")[2]
 			filesnames[filename] = 0
 		}
@@ -72,19 +77,20 @@ func areAllEnvsAvailable(filename string) bool {
 	return true
 }
 
-func getConfigsFromEnvs() (configs []ConfigDetails) {
+func getConfigsFromEnvs() (configs []ConfigDetails, failures int) {
 	for _, filename := range findAllConfigFiles() {
 		if !areAllEnvsAvailable(filename) {
 			fmt.Println("Skipping file: " + filename + " as there are missing envs.")
+			failures++
 			continue
 		}
 
 		configs = append(configs, ConfigDetails{
-			scheme:       os.Getenv(envPrefix + filename + schemeSuffix),
-			bucketName:   os.Getenv(envPrefix + filename + bucketNameSuffix),
-			objectKey:    os.Getenv(envPrefix + filename + objectKeySuffix),
-			saveLocation: os.Getenv(envPrefix + filename + saveLocationSuffix),
-			permissions:  os.Getenv(envPrefix + filename + permissionsSuffix),
+			scheme:       strings.Replace(os.Getenv(envPrefix+filename+schemeSuffix), "\"", "", -1),
+			bucketName:   strings.Replace(os.Getenv(envPrefix+filename+bucketNameSuffix), "\"", "", -1),
+			objectKey:    strings.Replace(os.Getenv(envPrefix+filename+objectKeySuffix), "\"", "", -1),
+			saveLocation: strings.Replace(os.Getenv(envPrefix+filename+saveLocationSuffix), "\"", "", -1),
+			permissions:  strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1),
 		})
 	}
 
