@@ -1,6 +1,6 @@
 FROM golang:1.19 as build
 WORKDIR /go/src/
-COPY go.* .
+COPY go.* ./
 RUN go mod download
 
 COPY main.go .
