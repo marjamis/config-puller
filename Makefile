@@ -19,7 +19,7 @@ test: ## Builds and then runs tests against the application
 	go test -cover .
 
 build:
-	docker run -t $(DOCKER_IMAGE_NAME) .
+	docker build -t $(DOCKER_IMAGE_NAME) .
 
 dev: build ## Runs a dev version of the application
 	$(MAKE) command ENV_FILE_LOCATION="./test/envfile.txt"
