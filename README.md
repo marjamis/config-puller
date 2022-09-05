@@ -16,7 +16,7 @@ docker run -it --rm --env-file <envfile> ghcr.io/marjamis/config-puller-image:la
 
 ### Configuration
 
-For each file you would like to download from an S3 or GCP bucket specify these 5 environment variables to allow config-puller-image to get the required details:
+For each file you would like to download from an S3 or GCP bucket specify these 5 environment variables to allow config-puller-image to get the required details to download the file. Make sure to replace UNIQUEID with a unique identifier per file and ensuring this id contains no _'s.
 
 Environment Variable | What does it do? | Valid Options
 --- | --- | ---
