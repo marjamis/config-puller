@@ -1,4 +1,4 @@
-module github.com/marjamis/config-puller-image
+module github.com/marjamis/config-puller
 
 go 1.19
 

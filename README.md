@@ -11,12 +11,12 @@ Download the docker image.
 Run the docker image directly or via an orchestrator. The generic docker run equivalent would be:
 
 ```bash
-docker run -it --rm -e AWS_SDK_LOAD_CONFIG=true -v $HOME/.aws:/root/.aws -v $(pwd)/output/:/output/ --env-file <envfile> ghcr.io/marjamis/config-puller-image:latest
+docker run -it --rm -e AWS_SDK_LOAD_CONFIG=true -v $HOME/.aws:/root/.aws -v $(pwd)/output/:/output/ --env-file <envfile> ghcr.io/marjamis/config-puller:latest
 ```
 
 ### Configuration
 
-For each file you would like to download from an S3 or GCP bucket specify these 5 environment variables to allow config-puller-image to get the required details to download the file. Make sure to replace UNIQUEID with a unique identifier per file and ensuring this id contains no _'s.
+For each file you would like to download from an S3 or GCP bucket specify these 5 environment variables to allow config-puller to get the required details to download the file. Make sure to replace UNIQUEID with a unique identifier per file and ensuring this id contains no _'s.
 
 Environment Variable | What does it do? | Valid Options
 --- | --- | ---
