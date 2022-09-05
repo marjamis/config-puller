@@ -11,7 +11,7 @@ Download the docker image.
 Run the docker image directly or via an orchestrator. The generic docker run equivalent would be:
 
 ```bash
-docker run -it --rm --env-file <envfile> ghcr.io/marjamis/config-puller-image:latest
+docker run -it --rm -e AWS_SDK_LOAD_CONFIG=true -v $HOME/.aws:/root/.aws -v $(pwd)/output/:/output/ --env-file <envfile> ghcr.io/marjamis/config-puller-image:latest
 ```
 
 ### Configuration

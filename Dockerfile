@@ -8,7 +8,7 @@ COPY main.go .
 RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o config-puller main.go
 
 # Final image in the build process
-FROM scratch
+FROM alpine:3.16.2
 COPY --from=build /go/src/config-puller /config-puller
 
 ENTRYPOINT ["/config-puller"]

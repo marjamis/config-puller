@@ -13,7 +13,7 @@ helper: # Adapted from: https://marmelab.com/blog/2016/02/29/auto-documented-mak
 
 command:
 	echo "Application run: $(ENV_FILE_LOCATION)"
-	docker run -it --rm --env-file $(ENV_FILE_LOCATION) $(DOCKER_IMAGE_NAME)
+	docker run -it --rm -e AWS_SDK_LOAD_CONFIG=true -v ${HOME}/.aws:/root/.aws -v $(pwd)/output/:/output/ --env-file $(ENV_FILE_LOCATION) $(DOCKER_IMAGE_NAME)
 
 test: ## Builds and then runs tests against the application
 	go test -cover .
