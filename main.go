@@ -3,11 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/fs"
+	"io/ioutil"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
-	"gocloud.dev/blob"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"gocloud.dev/blob/s3blob"
 	_ "gocloud.dev/blob/s3blob"
 )
 
@@ -20,12 +26,12 @@ const (
 	permissionsSuffix  string = "_PERMISSIONS"
 )
 
-type ConfigDetails struct {
+type configDetails struct {
 	scheme       string
 	bucketName   string
 	objectKey    string
 	saveLocation string
-	permissions  string
+	permissions  fs.FileMode
 }
 
 func main() {
@@ -77,7 +83,7 @@ func areAllEnvsAvailable(filename string) bool {
 	return true
 }
 
-func getConfigsFromEnvs() (configs []ConfigDetails, failures int) {
+func getConfigsFromEnvs() (configs []configDetails, failures int) {
 	for _, filename := range findAllConfigFiles() {
 		if !areAllEnvsAvailable(filename) {
 			fmt.Println("Skipping file: " + filename + " as there are missing envs.")
@@ -85,32 +91,54 @@ func getConfigsFromEnvs() (configs []ConfigDetails, failures int) {
 			continue
 		}
 
-		configs = append(configs, ConfigDetails{
+		perms, err := strconv.Atoi(strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1))
+		if err != nil {
+			fmt.Println("Skipping file: " + filename + " as couldn't convert permissions to fileMode.")
+			failures++
+			continue
+		}
+
+		configs = append(configs, configDetails{
 			scheme:       strings.Replace(os.Getenv(envPrefix+filename+schemeSuffix), "\"", "", -1),
 			bucketName:   strings.Replace(os.Getenv(envPrefix+filename+bucketNameSuffix), "\"", "", -1),
 			objectKey:    strings.Replace(os.Getenv(envPrefix+filename+objectKeySuffix), "\"", "", -1),
 			saveLocation: strings.Replace(os.Getenv(envPrefix+filename+saveLocationSuffix), "\"", "", -1),
-			permissions:  strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1),
+			permissions:  fs.FileMode(perms),
 		})
 	}
 
 	return
 }
 
-func getFile(fileConfig ConfigDetails) {
+func getFile(fileConfig configDetails) {
 	ctx := context.Background()
 
-	bucket, err := blob.OpenBucket(ctx, fileConfig.scheme+"://"+fileConfig.bucketName)
+	sess, err := session.NewSession(&aws.Config{})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	bucket, err := s3blob.OpenBucket(ctx, sess, fileConfig.bucketName, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	defer bucket.Close()
+
 	blobReader, err := bucket.NewReader(ctx, fileConfig.objectKey, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(blobReader)
+	buf := new(strings.Builder)
+	_, err = io.Copy(buf, blobReader)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Content-Type:", blobReader.ContentType())
+	ioutil.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
 }

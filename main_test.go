@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"testing"
 
@@ -31,20 +32,20 @@ func TestGetConfigFromEnvs(t *testing.T) {
 	fmt.Printf("%+v", configs)
 
 	t.Run("Success count and values", func(t *testing.T) {
-		assert.ElementsMatch(t, []ConfigDetails{
+		assert.ElementsMatch(t, []configDetails{
 			{
 				scheme:       "s3",
 				bucketName:   "my-bucket",
 				objectKey:    "objectkey",
 				saveLocation: "/save/location/with-filename.config",
-				permissions:  "0777",
+				permissions:  fs.FileMode(int(777)),
 			},
 			{
 				scheme:       "s3",
 				bucketName:   "my-bucket2",
 				objectKey:    "object/key",
 				saveLocation: "/save/location/with-filename2.config",
-				permissions:  "0400",
+				permissions:  fs.FileMode(int(400)),
 			},
 		}, configs)
 	})
