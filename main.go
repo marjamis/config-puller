@@ -91,7 +91,8 @@ func getConfigsFromEnvs() (configs []configDetails, failures int) {
 			continue
 		}
 
-		perms, err := strconv.Atoi(strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1))
+		// Converting the permissions octet into the fs.FileMode 32 bit integer. Basically a translation between the two formats but has the same resultant permssions
+		perms, err := strconv.ParseUint(strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1), 8, 32)
 		if err != nil {
 			fmt.Println("Skipping file: " + filename + " as couldn't convert permissions to fileMode.")
 			failures++

@@ -38,14 +38,16 @@ func TestGetConfigFromEnvs(t *testing.T) {
 				bucketName:   "my-bucket",
 				objectKey:    "objectkey",
 				saveLocation: "/save/location/with-filename.config",
-				permissions:  fs.FileMode(int(777)),
+				// Conversion of 777 (octet) to base 10
+				permissions: fs.FileMode(511),
 			},
 			{
 				scheme:       "s3",
 				bucketName:   "my-bucket2",
 				objectKey:    "object/key",
 				saveLocation: "/save/location/with-filename2.config",
-				permissions:  fs.FileMode(int(400)),
+				// Conversion of 400 (octet) to base 10
+				permissions: fs.FileMode(256),
 			},
 		}, configs)
 	})
