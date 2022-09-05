@@ -12,7 +12,7 @@ jobs:
         steps:
             - name: "Sets the date value"
               id: set_date
-              run: "::set-output name=current_date::$(date +%s)"
+              run: echo "::set-output name=current_date::$(date +%s)"
 
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v2
