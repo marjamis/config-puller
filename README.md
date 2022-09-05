@@ -1,4 +1,4 @@
-# config-puller-image
+# config-puller
 
 A go app that pulls configuration files from a bucket and writes them locally. Primarily for use as a sidecar container where an application needs configuration files and is able to access them via a docker data volume.
 
