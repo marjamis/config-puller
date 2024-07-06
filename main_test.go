@@ -18,6 +18,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/localstack"
 )
 
+const (
+	DEFAULT_SCHEME = "s3"
+)
+
 func TestAreEnvsAvailable(t *testing.T) {
 	os.Clearenv()
 	godotenv.Load("./test/envfile.txt")
@@ -40,7 +44,7 @@ func TestGetConfigFromEnvs(t *testing.T) {
 	t.Run("Success count and values", func(t *testing.T) {
 		assert.ElementsMatch(t, []configDetails{
 			{
-				scheme:       "s3",
+				scheme:       DEFAULT_SCHEME,
 				bucketName:   "my-bucket",
 				objectKey:    "objectkey",
 				saveLocation: "/save/location/with-filename.config",
@@ -48,7 +52,7 @@ func TestGetConfigFromEnvs(t *testing.T) {
 				permissions: fs.FileMode(511),
 			},
 			{
-				scheme:       "s3",
+				scheme:       DEFAULT_SCHEME,
 				bucketName:   "my-bucket2",
 				objectKey:    "object/key",
 				saveLocation: "/save/location/with-filename2.config",
@@ -63,7 +67,7 @@ func TestGetConfigFromEnvs(t *testing.T) {
 	})
 }
 
-func TestFindAllFiles(t *testing.T) {
+func TestFindAllConfigFiles(t *testing.T) {
 	os.Clearenv()
 
 	files := []string{
@@ -120,7 +124,7 @@ func s3Client(ctx context.Context, l *localstack.LocalStackContainer) (*s3.Clien
 	return client, nil
 }
 
-func TestS3(t *testing.T) {
+func TestGetFile(t *testing.T) {
 	ctx := context.Background()
 
 	bucketName := "my-bucket2"
@@ -138,25 +142,26 @@ func TestS3(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	t.Run("Object Getting", func(t *testing.T) {
+	t.Run("Getting configuration file from S3", func(t *testing.T) {
 		keyName := "object/key"
+		saveLocation := "/tmp/with-filename2.config"
 		contentType := "application/json"
 
 		_, err := client.PutObject(ctx, &s3.PutObjectInput{
 			Bucket:      &bucketName,
 			Key:         &keyName,
-			Body:        strings.NewReader("testing"),
+			Body:        strings.NewReader("content"),
 			ContentType: &contentType,
 		})
 		assert.NoError(t, err)
 
-		getFile(configDetails{
-			scheme:       "s3",
-			bucketName:   "my-bucket2",
-			objectKey:    "object/key",
-			saveLocation: "/tmp/with-filename2.config",
-			// Conversion of 400 (octet) to base 10
-			permissions: fs.FileMode(256),
+		err = getFile(configDetails{
+			scheme:       DEFAULT_SCHEME,
+			bucketName:   bucketName,
+			objectKey:    keyName,
+			saveLocation: saveLocation,
+			permissions:  fs.FileMode(511),
 		}, client)
+		assert.NoError(t, err)
 	})
 }

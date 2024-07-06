@@ -45,31 +45,13 @@ func main() {
 	fmt.Println("Getting configuration files...")
 	configsToGet, failures := getConfigsFromEnvs()
 	for _, config := range configsToGet {
-		getFile(config, client)
-	}
-
-	fmt.Printf("There were %d configuration files pulled successfully and %d failures.\n", len(configsToGet), failures)
-}
-
-func findAllConfigFiles() []string {
-	// Use a map to filter out duplicates of filenames
-	filenames := map[string]int{}
-	for _, env := range os.Environ() {
-		if strings.Contains(env, envPrefix) {
-			filename := strings.Split(env, "_")[2]
-			filenames[filename] = 0
+		err := getFile(config, client)
+		if err != nil {
+			fmt.Println(fmt.Errorf("Failure to get config file \"%s\" due to \"%s\"", fmt.Sprintf("%s/%s", config.bucketName, config.objectKey), err))
 		}
 	}
 
-	// Convert dictionary keys into a string array
-	files := make([]string, 0, len(filenames))
-	for filename := range filenames {
-		files = append(files, filename)
-	}
-
-	sort.Strings(files)
-
-	return files
+	fmt.Printf("There were %d configuration files pulled successfully and %d failures.\n", len(configsToGet), failures)
 }
 
 func areAllEnvsAvailable(filename string) bool {
@@ -117,29 +99,52 @@ func getConfigsFromEnvs() (configs []configDetails, failures int) {
 	return
 }
 
-func getFile(fileConfig configDetails, client *s3.Client) {
+func findAllConfigFiles() []string {
+	// Use a map to filter out duplicates of filenames
+	filenames := map[string]int{}
+	for _, env := range os.Environ() {
+		if strings.Contains(env, envPrefix) {
+			filename := strings.Split(env, "_")[2]
+			filenames[filename] = 0
+		}
+	}
+
+	// Convert dictionary keys into a string array
+	files := make([]string, 0, len(filenames))
+	for filename := range filenames {
+		files = append(files, filename)
+	}
+
+	sort.Strings(files)
+
+	return files
+}
+
+func getFile(fileConfig configDetails, client *s3.Client) (err error) {
 	ctx := context.Background()
 
 	bucket, err := s3blob.OpenBucketV2(ctx, client, fileConfig.bucketName, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer bucket.Close()
 
 	blobReader, err := bucket.NewReader(ctx, fileConfig.objectKey, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	buf := new(strings.Builder)
 	_, err = io.Copy(buf, blobReader)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	fmt.Println("Content-Type:", blobReader.ContentType())
-	os.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
+	err = os.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
