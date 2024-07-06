@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"testing"
@@ -28,8 +27,6 @@ func TestGetConfigFromEnvs(t *testing.T) {
 	os.Clearenv()
 	godotenv.Load("./test/envfile.txt")
 	configs, failureCount := getConfigsFromEnvs()
-
-	fmt.Printf("%+v", configs)
 
 	t.Run("Success count and values", func(t *testing.T) {
 		assert.ElementsMatch(t, []configDetails{

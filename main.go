@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -47,17 +46,17 @@ func main() {
 
 func findAllConfigFiles() []string {
 	// Use a map to filter out duplicates of filenames
-	filesnames := map[string]int{}
+	filenames := map[string]int{}
 	for _, env := range os.Environ() {
 		if strings.Contains(env, envPrefix) {
 			filename := strings.Split(env, "_")[2]
-			filesnames[filename] = 0
+			filenames[filename] = 0
 		}
 	}
 
 	// Convert dictionary keys into a string array
-	files := make([]string, 0, len(filesnames))
-	for filename := range filesnames {
+	files := make([]string, 0, len(filenames))
+	for filename := range filenames {
 		files = append(files, filename)
 	}
 
@@ -91,7 +90,7 @@ func getConfigsFromEnvs() (configs []configDetails, failures int) {
 			continue
 		}
 
-		// Converting the permissions octet into the fs.FileMode 32 bit integer. Basically a translation between the two formats but has the same resultant permssions
+		// Converting the permissions octet into the fs.FileMode 32 bit integer. Basically a translation between the two formats but has the same resultant permissions
 		perms, err := strconv.ParseUint(strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1), 8, 32)
 		if err != nil {
 			fmt.Println("Skipping file: " + filename + " as couldn't convert permissions to fileMode.")
@@ -141,5 +140,5 @@ func getFile(fileConfig configDetails) {
 	}
 
 	fmt.Println("Content-Type:", blobReader.ContentType())
-	ioutil.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
+	os.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
 }
