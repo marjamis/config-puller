@@ -24,7 +24,7 @@ CONFIG_PULLER_UNIQUEID_SCHEME | Defines the scheme of the bucket | gcp, s3
 CONFIG_PULLER_UNIQUEID_BUCKETNAME | Name of the buket | Any valid bucketname for gcp or s3
 CONFIG_PULLER_UNIQUEID_OBJECTKEY | Key of the object in the bucket | Any valid object key name and path
 CONFIG_PULLER_UNIQUEID_SAVELOCATION | Specify where you would like the downloaded object to be stored | Any valid path the application can write to
-CONFIG_PULLER_UNIQUEID_PERMISSIONS | The permissions of the file | Any valid Linux permissions in the octect format, such as 755, 600, etc.
+CONFIG_PULLER_UNIQUEID_PERMISSIONS | The permissions of the file | Any valid Linux permissions in the octet format, such as 755, 600, etc.
 
 ### Samples
 

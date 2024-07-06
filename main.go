@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"gocloud.dev/blob/s3blob"
 	_ "gocloud.dev/blob/s3blob"
 )
@@ -35,35 +34,24 @@ type configDetails struct {
 }
 
 func main() {
-	fmt.Println("Getting configuration files...")
-
-	configsToGet, failures := getConfigsFromEnvs()
-	for _, config := range configsToGet {
-		getFile(config)
+	fmt.Println("Creating S3 client...")
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		panic(err)
 	}
 
-	fmt.Printf("There were %d configuration files pulled successfully and %d failures.\n", len(configsToGet), failures)
-}
+	client := s3.NewFromConfig(cfg)
 
-func findAllConfigFiles() []string {
-	// Use a map to filter out duplicates of filenames
-	filesnames := map[string]int{}
-	for _, env := range os.Environ() {
-		if strings.Contains(env, envPrefix) {
-			filename := strings.Split(env, "_")[2]
-			filesnames[filename] = 0
+	fmt.Println("Getting configuration files...")
+	configsToGet, failures := getConfigsFromEnvs()
+	for _, config := range configsToGet {
+		err := getFile(config, client)
+		if err != nil {
+			fmt.Println(fmt.Errorf("Failure to get config file \"%s\" due to \"%s\"", fmt.Sprintf("%s/%s", config.bucketName, config.objectKey), err))
 		}
 	}
 
-	// Convert dictionary keys into a string array
-	files := make([]string, 0, len(filesnames))
-	for filename := range filesnames {
-		files = append(files, filename)
-	}
-
-	sort.Strings(files)
-
-	return files
+	fmt.Printf("There were %d configuration files pulled successfully and %d failures.\n", len(configsToGet), failures)
 }
 
 func areAllEnvsAvailable(filename string) bool {
@@ -91,7 +79,7 @@ func getConfigsFromEnvs() (configs []configDetails, failures int) {
 			continue
 		}
 
-		// Converting the permissions octet into the fs.FileMode 32 bit integer. Basically a translation between the two formats but has the same resultant permssions
+		// Converting the permissions octet into the fs.FileMode 32 bit integer. Basically a translation between the two formats but has the same resultant permissions
 		perms, err := strconv.ParseUint(strings.Replace(os.Getenv(envPrefix+filename+permissionsSuffix), "\"", "", -1), 8, 32)
 		if err != nil {
 			fmt.Println("Skipping file: " + filename + " as couldn't convert permissions to fileMode.")
@@ -111,35 +99,52 @@ func getConfigsFromEnvs() (configs []configDetails, failures int) {
 	return
 }
 
-func getFile(fileConfig configDetails) {
-	ctx := context.Background()
-
-	sess, err := session.NewSession(&aws.Config{})
-	if err != nil {
-		fmt.Println(err)
-		return
+func findAllConfigFiles() []string {
+	// Use a map to filter out duplicates of filenames
+	filenames := map[string]int{}
+	for _, env := range os.Environ() {
+		if strings.Contains(env, envPrefix) {
+			filename := strings.Split(env, "_")[2]
+			filenames[filename] = 0
+		}
 	}
 
-	bucket, err := s3blob.OpenBucket(ctx, sess, fileConfig.bucketName, nil)
+	// Convert dictionary keys into a string array
+	files := make([]string, 0, len(filenames))
+	for filename := range filenames {
+		files = append(files, filename)
+	}
+
+	sort.Strings(files)
+
+	return files
+}
+
+func getFile(fileConfig configDetails, client *s3.Client) (err error) {
+	ctx := context.Background()
+
+	bucket, err := s3blob.OpenBucketV2(ctx, client, fileConfig.bucketName, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer bucket.Close()
 
 	blobReader, err := bucket.NewReader(ctx, fileConfig.objectKey, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	buf := new(strings.Builder)
 	_, err = io.Copy(buf, blobReader)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	fmt.Println("Content-Type:", blobReader.ContentType())
-	ioutil.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
+	err = os.WriteFile(fileConfig.saveLocation, []byte(buf.String()), fileConfig.permissions)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
