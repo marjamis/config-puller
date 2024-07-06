@@ -15,8 +15,9 @@ command:
 	echo "Application run: $(ENV_FILE_LOCATION)"
 	docker run -it --rm -e AWS_SDK_LOAD_CONFIG=true -v ${HOME}/.aws:/root/.aws -v $(pwd)/output/:/output/ --env-file $(ENV_FILE_LOCATION) $(DOCKER_IMAGE_NAME)
 
+.PHONY: test
 test: ## Builds and then runs tests against the application
-	go test -cover .
+	go test -coverprofile ./coverage.html .
 
 build:
 	docker build -t $(DOCKER_IMAGE_NAME) .

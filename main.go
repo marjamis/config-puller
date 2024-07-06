@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"gocloud.dev/blob/s3blob"
 	_ "gocloud.dev/blob/s3blob"
 )
@@ -34,11 +34,18 @@ type configDetails struct {
 }
 
 func main() {
-	fmt.Println("Getting configuration files...")
+	fmt.Println("Creating S3 client...")
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		panic(err)
+	}
 
+	client := s3.NewFromConfig(cfg)
+
+	fmt.Println("Getting configuration files...")
 	configsToGet, failures := getConfigsFromEnvs()
 	for _, config := range configsToGet {
-		getFile(config)
+		getFile(config, client)
 	}
 
 	fmt.Printf("There were %d configuration files pulled successfully and %d failures.\n", len(configsToGet), failures)
@@ -110,16 +117,10 @@ func getConfigsFromEnvs() (configs []configDetails, failures int) {
 	return
 }
 
-func getFile(fileConfig configDetails) {
+func getFile(fileConfig configDetails, client *s3.Client) {
 	ctx := context.Background()
 
-	sess, err := session.NewSession(&aws.Config{})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	bucket, err := s3blob.OpenBucket(ctx, sess, fileConfig.bucketName, nil)
+	bucket, err := s3blob.OpenBucketV2(ctx, client, fileConfig.bucketName, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
